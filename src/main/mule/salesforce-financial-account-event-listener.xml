@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+  xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+  xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+  xmlns:http="http://www.mulesoft.org/schema/mule/http"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+  http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+  http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+  http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+  http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <!-- Webhook endpoint for Financial Account Events from Salesforce -->
+  <flow name="financial-account-event-listener" doc:name="financial-account-event-listener">
+    <http:listener doc:name="POST /events/financial-account" config-ref="HTTP_Listener_config" path="/events/financial-account" allowedMethods="POST"/>
+    
+    <logger level="INFO" message="Received Financial Account event from Salesforce: #[payload]" doc:name="Log Event"/>
+    
+    <try doc:name="Try">
+      <ee:transform doc:name="Transform to Account Update Message">
+        <ee:message>
+          <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var event = payload
+---
+{
+  eventType: "account.update",
+  accountId: event.Id default event.id,
+  accountNumber: event.AccountNumber default event.accountNumber,
+  accountType: event.Type default event.type,
+  accountName: event.Name default event.name,
+  balance: event.Balance__c default event.balance default 0.00,
+  status: event.Status__c default event.status default "Active",
+  customerSfId: event.FinServ__PrimaryOwner__c default event.primaryOwner,
+  timestamp: now()
+}]]></ee:set-payload>
+        </ee:message>
+      </ee:transform>
+
+      <anypoint-mq:publish doc:name="Publish to Accounts Topic" config-ref="Anypoint_MQ_Config" destination="Accounts Topic">
+        <anypoint-mq:message>
+          <anypoint-mq:body><![CDATA[#[payload]]]></anypoint-mq:body>
+        </anypoint-mq:message>
+      </anypoint-mq:publish>
+
+      <logger level="INFO" message="Published account update to Accounts Topic" doc:name="Log Success"/>
+      
+      <http:response statusCode="200" doc:name="HTTP Response">
+        <http:body><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "success",
+  message: "Event processed successfully"
+}]]></http:body>
+      </http:response>
+
+      <error-handler>
+        <on-error-continue type="ANYPOINT-MQ:PUBLISH" enableNotifications="true" logException="true" doc:name="MQ Error">
+          <logger level="ERROR" message="Error publishing to MQ: #[error.description]" doc:name="Log MQ Error"/>
+          <http:response statusCode="500" doc:name="HTTP Error Response">
+            <http:body><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "error",
+  message: "Failed to publish event to MQ"
+}]]></http:body>
+          </http:response>
+        </on-error-continue>
+      </error-handler>
+    </try>
+  </flow>
+
+  <!-- Webhook endpoint for Transaction Events from Salesforce -->
+  <flow name="transaction-event-listener" doc:name="transaction-event-listener">
+    <http:listener doc:name="POST /events/transaction" config-ref="HTTP_Listener_config" path="/events/transaction" allowedMethods="POST"/>
+    
+    <logger level="INFO" message="Received Transaction event from Salesforce: #[payload]" doc:name="Log Event"/>
+    
+    <try doc:name="Try">
+      <ee:transform doc:name="Transform to Transaction Update Message">
+        <ee:message>
+          <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var event = payload
+---
+{
+  eventType: "transaction.update",
+  transactionId: event.Id default event.id,
+  accountId: event.FinServ__FinancialAccount__c default event.financialAccount,
+  transactionNumber: event.TransactionNumber__c default event.transactionNumber,
+  transactionType: event.Type__c default event.type,
+  amount: event.Amount__c default event.amount default 0.00,
+  currency: event.Currency__c default event.currency default "USD",
+  description: event.Description__c default event.description,
+  status: event.Status__c default event.status default "Posted",
+  transactionDate: event.TransactionDate__c default event.transactionDate,
+  timestamp: now()
+}]]></ee:set-payload>
+        </ee:message>
+      </ee:transform>
+
+      <anypoint-mq:publish doc:name="Publish to Transactions Topic" config-ref="Anypoint_MQ_Config" destination="Transactions Topic">
+        <anypoint-mq:message>
+          <anypoint-mq:body><![CDATA[#[payload]]]></anypoint-mq:body>
+        </anypoint-mq:message>
+      </anypoint-mq:publish>
+
+      <logger level="INFO" message="Published transaction update to Transactions Topic" doc:name="Log Success"/>
+      
+      <http:response statusCode="200" doc:name="HTTP Response">
+        <http:body><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "success",
+  message: "Event processed successfully"
+}]]></http:body>
+      </http:response>
+
+      <error-handler>
+        <on-error-continue type="ANYPOINT-MQ:PUBLISH" enableNotifications="true" logException="true" doc:name="MQ Error">
+          <logger level="ERROR" message="Error publishing to MQ: #[error.description]" doc:name="Log MQ Error"/>
+          <http:response statusCode="500" doc:name="HTTP Error Response">
+            <http:body><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "error",
+  message: "Failed to publish event to MQ"
+}]]></http:body>
+          </http:response>
+        </on-error-continue>
+      </error-handler>
+    </try>
+  </flow>
+
+  <!-- Webhook endpoint for Card Events from Salesforce -->
+  <flow name="card-event-listener" doc:name="card-event-listener">
+    <http:listener doc:name="POST /events/card" config-ref="HTTP_Listener_config" path="/events/card" allowedMethods="POST"/>
+    
+    <logger level="INFO" message="Received Card event from Salesforce: #[payload]" doc:name="Log Event"/>
+    
+    <try doc:name="Try">
+      <ee:transform doc:name="Transform to Card Update Message">
+        <ee:message>
+          <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var event = payload
+---
+{
+  eventType: "card.update",
+  cardId: event.Id default event.id,
+  cardNumber: event.CardNumber__c default event.cardNumber,
+  cardType: event.Type__c default event.type,
+  cardNetwork: event.Network__c default event.network,
+  customerSfId: event.Customer__c default event.customer,
+  accountSfId: event.FinancialAccount__c default event.financialAccount,
+  status: event.Status__c default event.status default "Active",
+  creditLimit: event.CreditLimit__c default event.creditLimit default 0.00,
+  timestamp: now()
+}]]></ee:set-payload>
+        </ee:message>
+      </ee:transform>
+
+      <anypoint-mq:publish doc:name="Publish to Cards Topic" config-ref="Anypoint_MQ_Config" destination="Cards Topic">
+        <anypoint-mq:message>
+          <anypoint-mq:body><![CDATA[#[payload]]]></anypoint-mq:body>
+        </anypoint-mq:message>
+      </anypoint-mq:publish>
+
+      <logger level="INFO" message="Published card update to Cards Topic" doc:name="Log Success"/>
+      
+      <http:response statusCode="200" doc:name="HTTP Response">
+        <http:body><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "success",
+  message: "Event processed successfully"
+}]]></http:body>
+      </http:response>
+
+      <error-handler>
+        <on-error-continue type="ANYPOINT-MQ:PUBLISH" enableNotifications="true" logException="true" doc:name="MQ Error">
+          <logger level="ERROR" message="Error publishing to MQ: #[error.description]" doc:name="Log MQ Error"/>
+          <http:response statusCode="500" doc:name="HTTP Error Response">
+            <http:body><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "error",
+  message: "Failed to publish event to MQ"
+}]]></http:body>
+          </http:response>
+        </on-error-continue>
+      </error-handler>
+    </try>
+  </flow>
+
+</mule>
+
