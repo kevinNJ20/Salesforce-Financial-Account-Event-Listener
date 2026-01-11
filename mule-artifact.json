@@ -1,16 +1,14 @@
 {
-  "minMuleVersion": "4.4.0",
-  "requiredProduct": "MULE_EE",
-  "classLoaderModelLoaderDescriptor": {
-    "id": "mule",
-    "attributes": {
-      "exportedResources": []
-    }
-  },
-  "bundleDescriptorLoader": {
-    "id": "mule",
-    "attributes": {}
-  },
-  "name": "Salesforce Financial Account Event Listener"
+    "classLoaderModelLoaderDescriptor": {
+        "attributes": {"exportedResources": []},
+        "id": "mule"
+    },
+    "name": "Salesforce Financial Account Event Listener",
+    "requiredProduct": "MULE_EE",
+    "minMuleVersion": "4.4.0",
+    "bundleDescriptorLoader": {
+        "attributes": {},
+        "id": "mule"
+    },
+    "javaSpecificationVersions": ["17"]
 }
-
