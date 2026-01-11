@@ -1,38 +1,70 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.fintech</groupId>
+    <groupId>167d12fd-a524-4ceb-9804-cb9e9ac3cdc3</groupId>
     <artifactId>salesforce-financial-account-event-listener</artifactId>
     <version>1.0.0</version>
     <packaging>mule-application</packaging>
     <name>Salesforce Financial Account Event Listener</name>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <app.runtime>4.8.0</app.runtime>
-        <mule.maven.plugin.version>4.0.0</mule.maven.plugin.version>
+        <app.runtime>4.10.0</app.runtime>
+        <mule.version>4.10.0</mule.version>
+        <mule.tools.version>4.5.2</mule.tools.version>
+        <munit.version>3.4.0</munit.version>
+        <mule.maven.plugin.version>4.5.2</mule.maven.plugin.version>
     </properties>
-
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>3.2.0</version>
-            </plugin>
             <plugin>
                 <groupId>org.mule.tools.maven</groupId>
                 <artifactId>mule-maven-plugin</artifactId>
                 <version>${mule.maven.plugin.version}</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <filterAppDirectory>true</filterAppDirectory>
+                    <classifier>mule-application</classifier>
+                    <sharedLibraries/>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.7.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <args>-parameters</args>
+                    </compilerArgs>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.mulesoft.munit.tools</groupId>
+                <artifactId>munit-maven-plugin</artifactId>
+                <version>${munit.version}</version>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                            <goal>coverage-report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <coverage>
+                        <runCoverage>true</runCoverage>
+                        <formats>
+                            <format>html</format>
+                        </formats>
+                    </coverage>
+                </configuration>
             </plugin>
         </plugins>
     </build>
-
     <dependencies>
         <!-- Mule Runtime -->
         <dependency>
@@ -41,7 +73,6 @@
             <version>${app.runtime}</version>
             <scope>provided</scope>
         </dependency>
-
         <!-- HTTP Connector -->
         <dependency>
             <groupId>org.mule.connectors</groupId>
@@ -49,7 +80,6 @@
             <version>1.11.1</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-
         <!-- Anypoint MQ Connector -->
         <dependency>
             <groupId>com.mulesoft.connectors</groupId>
@@ -57,14 +87,12 @@
             <version>5.6.0</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-
         <dependency>
             <groupId>com.mulesoft.connectors</groupId>
             <artifactId>mule-salesforce-connector</artifactId>
             <version>12.0.0</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-
         <!-- DataWeave Module -->
         <dependency>
             <groupId>org.mule.modules</groupId>
@@ -72,12 +100,25 @@
             <version>2.0.0</version>
             <classifier>mule-plugin</classifier>
         </dependency>
-
         <!-- MUnit -->
         <dependency>
-            <groupId>org.mule.tests</groupId>
-            <artifactId>mule-tests-functional</artifactId>
-            <version>${app.runtime}</version>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>munit-runner</artifactId>
+            <version>3.4.0</version>
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>munit-tools</artifactId>
+            <version>3.4.0</version>
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.weave</groupId>
+            <artifactId>assertions</artifactId>
+            <version>1.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -88,7 +129,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
     <repositories>
         <repository>
             <id>anypoint-exchange</id>
@@ -103,7 +143,6 @@
             <layout>default</layout>
         </repository>
     </repositories>
-
     <pluginRepositories>
         <pluginRepository>
             <id>mulesoft-releases</id>
@@ -114,7 +153,16 @@
                 <enabled>false</enabled>
             </snapshots>
         </pluginRepository>
+        <pluginRepository>
+            <id>mulesoft-snapshots</id>
+            <name>mulesoft snapshots repository</name>
+            <layout>default</layout>
+            <url>http://repository.mulesoft.org/snapshots/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>mule-plugin</id>
+            <name>Mule Repository</name>
+            <url>https://repository.mulesoft.org/nexus/content/repositories/public/</url>
+        </pluginRepository>
     </pluginRepositories>
-
 </project>
-
